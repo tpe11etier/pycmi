@@ -5,6 +5,7 @@ import pyvii
 import time
 import process_file
 import configparser
+import logging
 
 CONF = configparser.ConfigParser()
 
@@ -13,6 +14,18 @@ try:
     CONF.read("config.props")
 except IOError as e:
     print('File %s not found!' % e)
+
+loglevel = CONF.get('Logging', 'LogLevel')
+
+
+logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
+                    filename=CONF.get('Logging', 'FileName'),
+                    filemode='w')
+
+if loglevel == 'DEBUG':
+    logging.getLogger().setLevel(logging.DEBUG)
+else:
+    logging.getLogger().setLevel(logging.INFO)
 
 # Create Authentication Header for SOAP Request
 authheader = {
@@ -33,8 +46,11 @@ def run_import(organizationid, importdefinitionid):
     try:
         api = pyvii.Api(authheader)
         # print(api.organization_query_root())
-        print(api.import_create(organizationid, importdefinitionid, 'extract_out_%s.csv'  % time.strftime("%Y%m%d")))
+        import_create = api.import_create(organizationid, importdefinitionid, 'extract_out_%s.csv'  % time.strftime("%Y%m%d"))
+        logging.info(import_create)
+        print(import_create)
     except pyvii.APIError as e:
+        logging.exception('An error has occurred. %s' % e.message.fault)
         print(e.message.fault)
 
 def main():
